@@ -1,3 +1,9 @@
+# nova commands can be executed by cd ~/devstack
+# . openrc admin
+# eg. nova list
+# cinder volume-list
+# docs of cinder http://docs.openstack.org/grizzly/openstack-block-storage/admin/content/cinder-install.html
+#
 require "rubygems"
 require "openstack"
 require "pp"
