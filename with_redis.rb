@@ -9,24 +9,21 @@ names      = ["Date", "Payments Received", "Amount Received",
 
 tbl = Hash[names.zip(data)]
 pp tbl
-exit
 
-class RedisClient
-  def initialize
-    @redis = Redis.new
+module RedisClient
+  extend self
+
+  def redis
+    @redis ||= Redis.new
   end
 
-  def with_redis( &blk )
-    if @redis && block_given?
-      @redis.instance_eval &blk
-    end
+  def with_redis &blk
+    redis.instance_eval &blk
   end
 end
 
-r = RedisClient.new
-
-r.with_redis do
-  del( "foo" )
-  set( "foo", "bar" )
+RedisClient.with_redis do
+  del "foo"
+  set "foo", "bar"
   puts "the foo keys is set to #{ get( "foo" ) }"
 end
