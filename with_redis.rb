@@ -10,6 +10,19 @@ names      = ["Date", "Payments Received", "Amount Received",
 tbl = Hash[names.zip(data)]
 pp tbl
 
+module Log
+  require "logger"
+  extend self
+
+  def logger
+    @logger ||= Logger.new(STDOUT)
+  end
+
+  def print
+    puts @logger
+  end
+end
+
 module RedisClient
   extend self
 
@@ -26,4 +39,9 @@ RedisClient.with_redis do
   del "foo"
   set "foo", "bar"
   puts "the foo keys is set to #{ get( "foo" ) }"
+  Log::logger.info("some message")
+
+  Log.print
+  Log::logger.info("some other message")
+  Log.print
 end
