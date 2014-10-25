@@ -83,6 +83,7 @@ if __FILE__ == $0
   max_genes = 200
   pop_size = 30
   num_children = 20
+  
   # execute the algorithm
   best = search( max_genes, search_space, pop_size, num_children )
   puts "done! Solution: f = #{ best[ :fitness ] }, s = #{ best[ :vector ].inspect }"
