@@ -7,6 +7,7 @@
 #include "net/tools/quic/quic_simple_server_stream.h"
 
 #include "base/logging.h"
+#include "base/strings/string_number_conversions.h"
 #include "net/quic/proto/cached_network_parameters.pb.h"
 #include "net/quic/quic_bug_tracker.h"
 #include "net/quic/quic_connection.h"
@@ -14,6 +15,7 @@
 #include "net/quic/quic_spdy_session.h"
 #include "net/quic/reliable_quic_stream.h"
 
+using base::StringToInt;
 using namespace std;
 
 namespace net {
@@ -45,6 +47,7 @@ void QuicServerSessionBase::Initialize() {
 		file_.seekg(0, file_.end);
     file_length_ = file_.tellg();
     file_.seekg(0, file_.beg);
+    send_header_ = false;
     DVLOG(1) << "file opened successfully on length " << file_length_;
   } else {
     DVLOG(1) << "Failed to open file " << fn;
@@ -133,10 +136,21 @@ void QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   DVLOG(1) << "length to send " << length << " left length " << file_length_;
   file_.read(buffer, length); 
   if (file_) {
+    if (send_header_ == false) {
+      SpdyHeaderBlock headers;
+      headers[":status"] = "200";
+      headers["content-length"] = base::IntToString(file_length_ + 1024);
+      stream->WriteHeaders(headers, send_fin, nullptr); 
+      send_header_ = true;
+    }
+
     StringPiece message(buffer, length);
     stream->WriteData(message, send_fin);
     DVLOG(1) << "Writing body (fin = " << send_fin
            << ") with size: " << length;
+    if (length == file_length_) {
+      stream->WriteTrailers(SpdyHeaderBlock(), nullptr);
+    }
   } else {
     DVLOG(1) << "Failed to read " << length;
     file_.close();
