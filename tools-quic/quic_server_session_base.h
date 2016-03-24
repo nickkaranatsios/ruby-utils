@@ -146,7 +146,7 @@ class QuicServerSessionBase : public QuicSpdySession {
   std::ifstream file_;
   int file_length_;
   bool send_header_;
-  void SendNextResponse(QuicSimpleServerStream* stream);
+  bool SendNextResponse(QuicSimpleServerStream* stream);
 
   DISALLOW_COPY_AND_ASSIGN(QuicServerSessionBase);
 };

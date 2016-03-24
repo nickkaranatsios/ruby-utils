@@ -105,6 +105,7 @@ void QuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
 }
 
 void QuicServerSessionBase::OnWriteBlocked() {
+  DVLOG(1) << "Connection blocked ";
   QuicSession::OnWriteBlocked();
   visitor_->OnWriteBlocked(connection());
 }
@@ -114,18 +115,24 @@ void QuicServerSessionBase::OnCanWrite() {
   std::unordered_map<unsigned int, net::ReliableQuicStream *> streams = dynamic_streams();
   for (std::unordered_map<unsigned int, net::ReliableQuicStream *>::const_iterator it = streams.begin(); it != streams.end(); ++it) {
     QuicSimpleServerStream* stream = static_cast<QuicSimpleServerStream*>(it->second);
-    DVLOG(1) << "reliable stream " << stream;
-    SendNextResponse(stream);
+    DVLOG(1) << "reliable stream " << stream->id();
+    bool can_tx = true;
+    int i = 0;
+    while (stream->flow_controller()->IsBlocked() == false && can_tx) {
+      can_tx = SendNextResponse(stream);
+      DVLOG(1) << "Send window size " << stream->flow_controller()->SendWindowSize();
+      if (i++ == 100) break;
+    }
   }
 }
 
-void QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
+bool QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   bool send_fin = false;
   file_length_ -= 1024;
   if (file_length_ <= 0) {
     DVLOG(1) << "complete sending all file ";
     file_.close();
-    return;
+    return false;
   }
   int length = 1024;
   if (file_length_ < 1024) {
@@ -154,8 +161,10 @@ void QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   } else {
     DVLOG(1) << "Failed to read " << length;
     file_.close();
+    return false;
   }
   delete[] buffer;
+  return true;
 }
 
 void QuicServerSessionBase::OnCongestionWindowChange(QuicTime now) {
