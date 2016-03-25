@@ -24,11 +24,9 @@ QuicServerSessionBase::QuicServerSessionBase(
     const QuicConfig& config,
     QuicConnection* connection,
     QuicServerSessionVisitor* visitor,
-    const QuicCryptoServerConfig* crypto_config,
-    QuicCompressedCertsCache* compressed_certs_cache)
+    const QuicCryptoServerConfig* crypto_config)
     : QuicSpdySession(connection, config),
       crypto_config_(crypto_config),
-      compressed_certs_cache_(compressed_certs_cache),
       visitor_(visitor),
       bandwidth_resumption_enabled_(false),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
@@ -39,12 +37,12 @@ QuicServerSessionBase::~QuicServerSessionBase() {}
 
 void QuicServerSessionBase::Initialize() {
   crypto_stream_.reset(
-      CreateQuicCryptoServerStream(crypto_config_, compressed_certs_cache_));
+      CreateQuicCryptoServerStream(crypto_config_));
   QuicSpdySession::Initialize();
   const char *fn = "./out/Debug/SampleVideo_720x480_20mb.mp4";
   file_.open(fn, ios::in | ios::binary);
   if (file_.is_open()) {
-		file_.seekg(0, file_.end);
+                file_.seekg(0, file_.end);
     file_length_ = file_.tellg();
     file_.seekg(0, file_.beg);
     send_header_ = false;
@@ -105,7 +103,6 @@ void QuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
 }
 
 void QuicServerSessionBase::OnWriteBlocked() {
-  DVLOG(1) << "Connection blocked ";
   QuicSession::OnWriteBlocked();
   visitor_->OnWriteBlocked(connection());
 }
@@ -117,11 +114,9 @@ void QuicServerSessionBase::OnCanWrite() {
     QuicSimpleServerStream* stream = static_cast<QuicSimpleServerStream*>(it->second);
     DVLOG(1) << "reliable stream " << stream->id();
     bool can_tx = true;
-    int i = 0;
-    while (stream->flow_controller()->IsBlocked() == false && can_tx) {
+    while (stream->flow_controller()->IsBlocked() == false && can_tx && !HasDataToWrite()) {
       can_tx = SendNextResponse(stream);
       DVLOG(1) << "Send window size " << stream->flow_controller()->SendWindowSize();
-      if (i++ == 100) break;
     }
   }
 }
@@ -141,13 +136,13 @@ bool QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   char* buffer = new char[length];
 
   DVLOG(1) << "length to send " << length << " left length " << file_length_;
-  file_.read(buffer, length); 
+  file_.read(buffer, length);
   if (file_) {
     if (send_header_ == false) {
       SpdyHeaderBlock headers;
       headers[":status"] = "200";
       headers["content-length"] = base::IntToString(file_length_ + 1024);
-      stream->WriteHeaders(headers, send_fin, nullptr); 
+      stream->WriteHeaders(headers, send_fin, nullptr);
       send_header_ = true;
     }
 
