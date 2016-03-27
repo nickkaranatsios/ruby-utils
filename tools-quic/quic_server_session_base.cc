@@ -7,6 +7,7 @@
 #include "net/tools/quic/quic_simple_server_stream.h"
 
 #include "base/logging.h"
+#include "base/bind.h"
 #include "base/strings/string_number_conversions.h"
 #include "net/quic/proto/cached_network_parameters.pb.h"
 #include "net/quic/quic_bug_tracker.h"
@@ -20,13 +21,35 @@ using namespace std;
 
 namespace net {
 
+class QuicWriteCompleteAck : public QuicAckListenerInterface {
+  public:
+    QuicWriteCompleteAck(QuicServerSessionBase* session)
+      :session_(session) {}
+    
+    void OnPacketAcked(int /*acked_bytes*/,
+                     QuicTime::Delta /*ack delay time*/) override {
+      PacketAcked();
+    }
+    void OnPacketRetransmitted(int /* retransmitted_bytes */) override {}
+  protected:
+    ~QuicWriteCompleteAck() override {}
+  private:
+    void PacketAcked() {
+      session_->PacketAcked();
+    }
+    QuicServerSessionBase* session_;
+    DISALLOW_COPY_AND_ASSIGN(QuicWriteCompleteAck);
+};
+
 QuicServerSessionBase::QuicServerSessionBase(
     const QuicConfig& config,
     QuicConnection* connection,
     QuicServerSessionVisitor* visitor,
-    const QuicCryptoServerConfig* crypto_config)
+    const QuicCryptoServerConfig* crypto_config,
+    QuicCompressedCertsCache* compressed_certs_cache)
     : QuicSpdySession(connection, config),
       crypto_config_(crypto_config),
+      compressed_certs_cache_(compressed_certs_cache),
       visitor_(visitor),
       bandwidth_resumption_enabled_(false),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
@@ -37,15 +60,17 @@ QuicServerSessionBase::~QuicServerSessionBase() {}
 
 void QuicServerSessionBase::Initialize() {
   crypto_stream_.reset(
-      CreateQuicCryptoServerStream(crypto_config_));
+      CreateQuicCryptoServerStream(crypto_config_, compressed_certs_cache_));
   QuicSpdySession::Initialize();
+  ack_listener_ = new QuicWriteCompleteAck(this);
   const char *fn = "./out/Debug/SampleVideo_720x480_20mb.mp4";
   file_.open(fn, ios::in | ios::binary);
   if (file_.is_open()) {
-                file_.seekg(0, file_.end);
+		file_.seekg(0, file_.end);
     file_length_ = file_.tellg();
     file_.seekg(0, file_.beg);
     send_header_ = false;
+    send_length_ = 0;
     DVLOG(1) << "file opened successfully on length " << file_length_;
   } else {
     DVLOG(1) << "Failed to open file " << fn;
@@ -103,6 +128,7 @@ void QuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
 }
 
 void QuicServerSessionBase::OnWriteBlocked() {
+  DVLOG(1) << "Connection blocked ";
   QuicSession::OnWriteBlocked();
   visitor_->OnWriteBlocked(connection());
 }
@@ -113,10 +139,15 @@ void QuicServerSessionBase::OnCanWrite() {
   for (std::unordered_map<unsigned int, net::ReliableQuicStream *>::const_iterator it = streams.begin(); it != streams.end(); ++it) {
     QuicSimpleServerStream* stream = static_cast<QuicSimpleServerStream*>(it->second);
     DVLOG(1) << "reliable stream " << stream->id();
+    DVLOG(1) << "HasDataToWrite() " << HasDataToWrite();
+    DVLOG(1) << "flow controller is blocked " << stream->flow_controller()->IsBlocked();
+    DVLOG(1) << "send window size " << stream->flow_controller()->SendWindowSize() << " send length " << send_length_;
     bool can_tx = true;
-    while (stream->flow_controller()->IsBlocked() == false && can_tx && !HasDataToWrite()) {
+    while (stream->flow_controller()->IsBlocked() == false && can_tx && send_length_ < stream->flow_controller()->SendWindowSize()) {
       can_tx = SendNextResponse(stream);
       DVLOG(1) << "Send window size " << stream->flow_controller()->SendWindowSize();
+      DVLOG(1) << "Has data to write " << HasDataToWrite();
+      DVLOG(1) << "connection can write stream data " << connection()->CanWriteStreamData();
     }
   }
 }
@@ -136,20 +167,26 @@ bool QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   char* buffer = new char[length];
 
   DVLOG(1) << "length to send " << length << " left length " << file_length_;
-  file_.read(buffer, length);
+  file_.read(buffer, length); 
   if (file_) {
     if (send_header_ == false) {
       SpdyHeaderBlock headers;
       headers[":status"] = "200";
       headers["content-length"] = base::IntToString(file_length_ + 1024);
-      stream->WriteHeaders(headers, send_fin, nullptr);
+      stream->WriteHeaders(headers, send_fin, nullptr); 
       send_header_ = true;
     }
 
     StringPiece message(buffer, length);
-    stream->WriteData(message, send_fin);
+    // stream->WriteData(message, send_fin);
+    // connection()->writer()->WritePacket(buffer, length, connection()->self_address().address(), connection()->peer_address(),nullptr);
+    
+    struct iovec iov;
+    QuicIOVector data_iov(MakeIOVector(message, &iov));
+    connection()->SendStreamData(stream->id(), data_iov, send_length_, false, ack_listener_.get()); 
+    send_length_ += length;
     DVLOG(1) << "Writing body (fin = " << send_fin
-           << ") with size: " << length;
+           << ") with size: " << length << " offset " << send_length_;
     if (length == file_length_) {
       stream->WriteTrailers(SpdyHeaderBlock(), nullptr);
     }
@@ -162,7 +199,12 @@ bool QuicServerSessionBase::SendNextResponse(QuicSimpleServerStream* stream) {
   return true;
 }
 
+void QuicServerSessionBase::PacketAcked() {
+  DVLOG(1) << "On packet acked called" ;
+}
+
 void QuicServerSessionBase::OnCongestionWindowChange(QuicTime now) {
+  DVLOG(1) << "OnCongestionWindowChange ";
   if (!bandwidth_resumption_enabled_) {
     return;
   }

@@ -17,6 +17,7 @@
 #include "base/containers/hash_tables.h"
 #include "base/macros.h"
 #include "base/memory/scoped_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "net/quic/crypto/quic_compressed_certs_cache.h"
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
@@ -91,6 +92,7 @@ class QuicServerSessionBase : public QuicSpdySession {
   }
 
   std::unordered_map<unsigned int, net::ReliableQuicStream *>& GetDynamicStreams();
+  void PacketAcked();
 
  protected:
   // QuicSession methods(override them with return type of QuicSpdyStream*):
@@ -100,12 +102,12 @@ class QuicServerSessionBase : public QuicSpdySession {
   // Return false when connection is closed or forward secure encryption hasn't
   // established yet or number of server initiated streams already reaches the
   // upper limit.
-  virtual bool ShouldCreateOutgoingDynamicStream();
+  bool ShouldCreateOutgoingDynamicStream() override;
 
   // If we should create an incoming stream, returns true. Otherwise
   // does error handling, including communicating the error to the client and
   // possibly closing the connection, and returns false.
-  virtual bool ShouldCreateIncomingDynamicStream(QuicStreamId id);
+  bool ShouldCreateIncomingDynamicStream(QuicStreamId id) override;
 
   virtual QuicCryptoServerStreamBase* CreateQuicCryptoServerStream(
       const QuicCryptoServerConfig* crypto_config,
@@ -146,10 +148,13 @@ class QuicServerSessionBase : public QuicSpdySession {
   std::ifstream file_;
   int file_length_;
   bool send_header_;
+  unsigned long long send_length_;
   bool SendNextResponse(QuicSimpleServerStream* stream);
+  scoped_refptr<QuicAckListenerInterface> ack_listener_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicServerSessionBase);
 };
+
 
 }  // namespace net
 

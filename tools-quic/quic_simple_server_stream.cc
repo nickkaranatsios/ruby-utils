@@ -68,7 +68,7 @@ void QuicSimpleServerStream::OnDataAvailable() {
     body_.append(static_cast<char*>(iov.iov_base), iov.iov_len);
 
     if (content_length_ >= 0 &&
-        static_cast<int>(body_.size()) > content_length_) {
+        body_.size() > static_cast<uint64_t>(content_length_)) {
       DVLOG(1) << "Body size (" << body_.size() << ") > content length ("
                << content_length_ << ").";
       SendErrorResponse();
@@ -98,7 +98,7 @@ void QuicSimpleServerStream::OnDataAvailable() {
   }
 
   if (content_length_ > 0 &&
-      content_length_ != static_cast<int>(body_.size())) {
+      static_cast<uint64_t>(content_length_) != body_.size()) {
     DVLOG(1) << "Content length (" << content_length_ << ") != body size ("
              << body_.size() << ").";
     SendErrorResponse();
@@ -154,15 +154,8 @@ void QuicSimpleServerStream::SendResponse() {
 
   // Examing response status, if it was not pure integer as typical h2 response
   // status, send error response.
-  string request_url;
-  if (!request_headers_[":scheme"].as_string().empty()) {
-    request_url = request_headers_[":scheme"].as_string() + "://" +
-                  request_headers_[":authority"].as_string() +
-                  request_headers_[":path"].as_string();
-  } else {
-    request_url = request_headers_[":authority"].as_string() +
-                  request_headers_[":path"].as_string();
-  }
+  string request_url = request_headers_[":authority"].as_string() +
+                       request_headers_[":path"].as_string();
   int response_code;
   SpdyHeaderBlock response_headers = response->headers();
   if (!base::StringToInt(response_headers[":status"], &response_code)) {
