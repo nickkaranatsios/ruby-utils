@@ -143,7 +143,8 @@ void QuicServerSessionBase::OnCanWrite() {
     DVLOG(1) << "flow controller is blocked " << stream->flow_controller()->IsBlocked();
     DVLOG(1) << "send window size " << stream->flow_controller()->SendWindowSize() << " send length " << send_length_;
     bool can_tx = true;
-    while (stream->flow_controller()->IsBlocked() == false && can_tx && send_length_ < stream->flow_controller()->SendWindowSize()) {
+    //while (stream->flow_controller()->IsBlocked() == false && can_tx && send_length_ < stream->flow_controller()->SendWindowSize()) {
+    while (stream->flow_controller()->IsBlocked() == false && can_tx && !HasDataToWrite()) {
       can_tx = SendNextResponse(stream);
       DVLOG(1) << "Send window size " << stream->flow_controller()->SendWindowSize();
       DVLOG(1) << "Has data to write " << HasDataToWrite();
