@@ -1,0 +1,32 @@
+# == Schema Information
+#
+# Table name: comments
+#
+#  id            :integer          not null, primary key
+#  body          :text
+#  user          :string
+#  user_location :string
+#  stars         :integer
+#  pick          :boolean
+#  article_id    :integer
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#
+
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  body: MyText
+  user: MyString
+  user_location: MyString
+  stars: 1
+  pick: false
+  article_id: 
+
+two:
+  body: MyText
+  user: MyString
+  user_location: MyString
+  stars: 1
+  pick: false
+  article_id: 
