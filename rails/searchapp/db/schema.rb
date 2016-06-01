@@ -27,10 +27,9 @@ ActiveRecord::Schema.define(version: 20150720082854) do
   create_table "articles_categories", force: :cascade do |t|
     t.integer "article_id"
     t.integer "category_id"
+    t.index ["article_id"], name: "index_articles_categories_on_article_id"
+    t.index ["category_id"], name: "index_articles_categories_on_category_id"
   end
-
-  add_index "articles_categories", ["article_id"], name: "index_articles_categories_on_article_id"
-  add_index "articles_categories", ["category_id"], name: "index_articles_categories_on_category_id"
 
   create_table "authors", force: :cascade do |t|
     t.string   "first_name"
@@ -44,10 +43,9 @@ ActiveRecord::Schema.define(version: 20150720082854) do
     t.integer  "author_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["article_id"], name: "index_authorships_on_article_id"
+    t.index ["author_id"], name: "index_authorships_on_author_id"
   end
-
-  add_index "authorships", ["article_id"], name: "index_authorships_on_article_id"
-  add_index "authorships", ["author_id"], name: "index_authorships_on_author_id"
 
   create_table "categories", force: :cascade do |t|
     t.string   "title"
@@ -64,8 +62,7 @@ ActiveRecord::Schema.define(version: 20150720082854) do
     t.integer  "article_id"
     t.datetime "created_at",    null: false
     t.datetime "updated_at",    null: false
+    t.index ["article_id"], name: "index_comments_on_article_id"
   end
-
-  add_index "comments", ["article_id"], name: "index_comments_on_article_id"
 
 end
