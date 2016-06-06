@@ -1,8 +1,8 @@
 # encoding: utf-8
-require "logstash/outputs/base"
-require "logstash/namespace"
 require "socket"
 require "ftw"
+require "logstash/outputs/base"
+require "logstash/namespace"
 
 # An example output that does nothing.
 class LogStash::Outputs::WebsocketClient < LogStash::Outputs::Base
