@@ -1,0 +1,131 @@
+$default-font: Helvetica, !default
+$default-font-size: 16px
+$default-font-weight: normal, !default
+$default-color: #fffff
+
+
+=title-prop($font_size, $font-weight: $default-font-weight)
+	font-size: $font_size
+	font-weight: $font_weight
+
+=after-prop
+	content: ""
+	display: block
+	clear: both
+
+=task-info-table-fields
+	.starttime
+		width: 8%
+	.complete
+		width: 10%
+	.im,
+	.score,
+	.type
+		width: 5%
+	.detail,
+	.snapshot,
+	.discard
+		width: 6%
+	.analysis
+		width: 100%
+
+=analysis-report-table-fields
+	.device,
+	.taskid
+		width: 10%
+	.name
+		width: 20%
+	.type
+		width: 5%
+	.load-libraries
+		width: 14%
+	.dst
+		width: 15%
+	.starttime,
+	.endtime
+		width: 8%
+	.full-data
+		width: 6%
+
+.body
+	background: $default-font
+	font-size: $default-font-size
+	color: $default-color
+
+
+.title-text
+	+title-prop($default-font-size * 1.25, bold)
+
+.sub-title-text
+	+title-prop($default-font-size)
+
+.title-text
+	.main
+		+title-prop($default-font-size * 2)
+		color: #ffcc00
+
+.title-text
+	.menu
+		+title-prop($default-font-size * 1.125, normal)
+
+.analysis-report-table
+	display: none
+	.head
+		border-bottom: 1px solid #2e75de
+	.body
+		height: 100%
+		overflow-y: visible
+		border-bottom: 1px solid #2e75de
+	.tr
+		float: left
+		.analysis-device
+			width: 10%
+		.analysis-name
+			width: 20%
+		.analysis-type
+			width: 5%
+		.analysis-load-libraries
+			width: 14%
+		.analysis-dst
+			width: 15%
+		.analysis-starttime
+			width: 8%
+		.analysis-endtime
+			width: 8%
+		.analyis-full-data
+			width: 6%
+
+.task-info-table
+	.body::webkit-scrollbar
+		width: 15px
+		background: #2e75de
+	.body::webkit-scrollbar-thumb
+		background: #9dc3e6
+	.body
+		.tr:after
+			+after-prop
+	.head
+		.tr
+			text-align: left
+			margin-top: 5px
+			margin-right: 5px
+			padding-top: 5px
+			padding-bottom: 5px
+		.tr:after
+			+after-prop
+	.tr
+		float: left
+		margin: 0px 0px 5px 0px
+		word-break: break-all
+		+task-info-table-fields
+
+.analysis-report-table
+	display: none
+	.body
+		height: 100%
+		overflow-y: visible
+		border-bottom: 1px solid #2e75de
+		.tr
+			float: left
+			+analysis-report-table-fields
+
