@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'digest/bubblebabble'
 
 class Generator
@@ -8,18 +10,49 @@ class Generator
 
 
   def output_mutation_to
-    shuffle_string = shuffle
-    shuffle_array = shuffle_string.split("-")
-    f1, f2, f3 = shuffle_array.each_slice(shuffle_array.size / 3).to_a
-    puts f1.join("-")
-    puts f2.join("-")
-    puts f3.join("-")
-    puts shuffle_string
-    @no_times.times do | each |
+    @no_times.times do |i|
+      output_arr = []
       t = Time.now
-      t.strftime("%m/%d/%Y %H:%I:%S")
+      f1 = t.strftime("%m/%d/%Y %H:%I:%S")
+      output_arr << f1
+
+      f2 = "X" * 3 + "-sa01"
+      output_arr << f2
+
+      f3 = "#{i}" * 10 
+      output_arr << f3
+
+      f4 = "NG"
+      output_arr << f4
+
+      f5 = "3"
+      output_arr << f5
+
+      f6 = "mail"
+      output_arr << f6
+
+      shuffle_string = shuffle
+      shuffle_array = shuffle_string.split("-")
+      fn1, fn2 = shuffle_array.each_slice(shuffle_array.size / 2).to_a
+      #
+      #["xuseg", "kykif", "bybav", "metop", "zofun"]
+      #["pocom", "fofok", "fifon", "rycok", "bisib"]
+      #["lyliv", "dadul", "karor", "govek", "vapap"]
+      ext = %w(.pdf .js .scr).shuffle.take(1)[0]
+      #f7 = fn1.join('-') + ext + " " + fn2.join('-') + ext  + " " + fn3.join('-') + ext + " "
+      res1 = fn1.take(4).join("-") + "_" + fn1[-4] + "-" + fn1[-2,2].to_a.join("-") + ext
+      res2 = fn2.take(4).join("-") + "_" + fn2[-4] + "-" + fn2[-2,2].to_a.join("-") + ext
+      f7 = res1 + " " + res2 + " "
+      output_arr << f7
       
+      f8 = fn1.length.to_s * 4 + " " + fn2.length.to_s * 4 + " "
+      output_arr << f8
+
+      puts output_arr.collect {|each| "\"" + each + "\"" }.join(",")
     end 
+    # File.open("fn", "w") do |f|
+    #   f << "this is a test"
+    # end
   end
 
   private
@@ -42,6 +75,6 @@ end
 # "mail"
 # 4 file names separated with spaces + 1 space at the end
 # size of file in size for a maximum of 2 file names
-no_times = ARGV[0] || 1000
+no_times = ARGV[0].to_i || 2
 generator = Generator.new no_times
 generator.output_mutation_to
