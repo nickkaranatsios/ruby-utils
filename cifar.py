@@ -41,6 +41,10 @@ def minimodel(input_shape):
 	return model
 
 (train_x, train_y), (test_x, test_y) = cifar10.load_data()
+train_x = train_x[:500]
+train_y = train_y[:500]
+test_x = test_x[:100]
+test_y = test_y[:100]
 
 train_x = train_x.astype('float32') / 255
 test_x = test_x.astype('float32') / 255
@@ -65,13 +69,19 @@ model.summary()
 model.compile(optimizer=Adam(0.001), loss="categorical_crossentropy", metrics=["accuracy"])
 
 epochs = 20
-steps_per_epoch = ceil(50000/128)
+# steps_per_epoch = ceil(50000/128)
+steps_per_epoch = ceil(500/128)
 
-model.fit_generator(datagen.flow(train_x, train_y, batch_size=128),
+print(train_x.shape)
+print(train_y.shape)
+print(test_x.shape)
+print(test_y.shape)
+# model.fit_generator(datagen.flow(train_x, train_y, batch_size=128),
+model.fit_generator(datagen.flow(train_x, train_y, batch_size=32),
 	validation_data=[test_x, test_y],
 	epochs=epochs, steps_per_epoch=steps_per_epoch,
 	verbose=1, workers=4)
 
-accuracy = model.evaluate(x=test_x, y=test_y, batch_size=128)
+accuracy = model.evaluate(x=test_x, y=test_y, batch_size=32)
 model.save("cifar10model.h5")
 
